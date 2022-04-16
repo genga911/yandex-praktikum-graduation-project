@@ -10,7 +10,7 @@ import (
 )
 
 type DB struct {
-	connection *pgx.Conn
+	Connection *pgx.Conn
 }
 
 // соединение с БД
@@ -19,9 +19,9 @@ func (db *DB) connect(connStr string) {
 	if err != nil {
 		panic(fmt.Sprintf("DB connection error: %s", err))
 	}
-	db.connection = connection
+	db.Connection = connection
 
-	err = db.connection.Ping(context.Background())
+	err = db.Connection.Ping(context.Background())
 	if err != nil {
 		panic(fmt.Sprintf("DB ping error: %s", err))
 	}
@@ -45,7 +45,7 @@ func (db *DB) createTables() {
 	tables = append(tables, &models.User{})
 
 	for _, table := range tables {
-		_, err := db.connection.Exec(context.Background(), table.GetCreateTable())
+		_, err := db.Connection.Exec(context.Background(), table.GetCreateTable())
 		if err != nil {
 			panic(fmt.Sprintf("Cannot create table users: %s", err))
 		}

@@ -1,16 +1,21 @@
 package models
 
+import "fmt"
+
 type User struct {
-	ID      string
-	Name    string
-	Balance int
+	ID       int    `json:"id"`
+	Login    string `json:"login"`
+	Password string `json:"-"`
+	Balance  int    `json:"balance,omitempty"`
 }
 
+const UsersTableName = "users"
+
 func (u *User) GetCreateTable() string {
-	return "CREATE TABLE IF NOT EXISTS users (" +
-		"id serial not null," +
-		"login varchar(255) not null," +
-		"password varchar(255) not null," +
-		"balance int not null default 0" +
-		");"
+	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ("+
+		"id serial not null,"+
+		"login varchar(255) not null UNIQUE,"+
+		"password varchar(255) not null,"+
+		"balance int not null default 0"+
+		");", UsersTableName)
 }

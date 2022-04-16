@@ -1,100 +1,87 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	"net/http"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/config"
-	models2 "github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
+	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
+	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
+	"github.com/genga911/yandex-praktikum-graduation-project/app/database/repository"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 )
 
-var identityKey = "id"
+const AuthCookieName = "auth"
 
-type login struct {
-	Username string `form:"username" json:"username" binding:"required"`
-	Password string `form:"password" json:"password" binding:"required"`
+type JWTAuth struct {
+	ID int `json:"id"`
+	jwt.RegisteredClaims
 }
 
-// нагрузка токена
-func payload(data interface{}) jwt.MapClaims {
-	if v, ok := data.(*models2.User); ok {
-		return jwt.MapClaims{
-			identityKey: v.Name,
+func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// проверим, есть ли у пользователя кука
+		authCookieName := "auth"
+		authCookie, err := c.Cookie(authCookieName)
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			fmt.Println(fmt.Sprintf("Cookie error: %s", err))
+			return
 		}
+
+		// проверим корректность куки
+		// пример взят из официальной документации
+		token, err := jwt.ParseWithClaims(authCookie, &JWTAuth{}, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Cookie token error: %v", token.Header["alg"])
+			}
+
+			return cfg.SecretKey, nil
+		})
+
+		var ID int
+		if token != nil {
+			if claims, ok := token.Claims.(*JWTAuth); ok && token.Valid {
+				ID = claims.ID
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
+		} else {
+			c.AbortWithStatus(http.StatusForbidden)
+		}
+
+		// Убедимся что пользователь реально существует
+		rp := repository.User{
+			DB: db,
+		}
+		user, err := rp.Find(ID)
+		if err != nil {
+			c.AbortWithError(http.StatusForbidden, err)
+			return
+		}
+
+		// запомним пользователя, чтобы не делать лищних запросов в БД
+		c.Set("user", user)
 	}
-	return jwt.MapClaims{}
 }
 
-// аутентификация
-func authenticator(c *gin.Context) (interface{}, error) {
-	var loginVals login
-	if err := c.ShouldBind(&loginVals); err != nil {
-		return "", jwt.ErrMissingLoginValues
+// SetAuthCookie установка авторизационной куки
+func SetAuthCookie(user *models.User, c *gin.Context, cfg *config.Config) {
+	claims := JWTAuth{
+		user.ID,
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(cfg.AuthTTL))),
+			Issuer:    "test",
+		},
 	}
-	userID := loginVals.Username
-	password := loginVals.Password
-
-	if (userID == "admin" && password == "admin") || (userID == "test" && password == "test") {
-		return &models2.User{
-			Name: userID,
-		}, nil
-	}
-
-	return nil, jwt.ErrFailedAuthentication
-}
-
-// идентификация, получение данных из токена
-func identity(c *gin.Context) interface{} {
-	claims := jwt.ExtractClaims(c)
-	return &models2.User{
-		Name: claims[identityKey].(string),
-	}
-}
-
-// авторизация
-func authorizator(data interface{}, c *gin.Context) bool {
-	if v, ok := data.(*models2.User); ok && v.Name == "admin" {
-		return true
-	}
-
-	return false
-}
-
-// разавторизация
-func unauthorized(c *gin.Context, code int, message string) {
-	c.JSON(code, gin.H{
-		"code":    code,
-		"message": message,
-	})
-}
-
-func GetAuthMiddleware(cfg *config.Config) *jwt.GinJWTMiddleware {
-	m, err := jwt.New(&jwt.GinJWTMiddleware{
-		Key:             []byte(cfg.JWTKey),
-		Timeout:         time.Hour,
-		IdentityKey:     identityKey,
-		PayloadFunc:     payload,
-		IdentityHandler: identity,
-		Authenticator:   authenticator,
-		Authorizator:    authorizator,
-		Unauthorized:    unauthorized,
-		TokenLookup:     "header: Authorization, query: token, cookie: jwt",
-		TokenHeadName:   "Bearer",
-		TimeFunc:        time.Now,
-	})
-
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(cfg.SecretKey))
 	if err != nil {
-		panic(fmt.Sprintf("JWT Error: %s", err))
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
 
-	errInit := m.MiddlewareInit()
-
-	if errInit != nil {
-		log.Fatal("authMiddleware.MiddlewareInit() Error:" + errInit.Error())
-	}
-
-	return m
+	c.SetCookie(AuthCookieName, tokenString, cfg.CookieTTL, "/", cfg.RunAddress, false, false)
 }

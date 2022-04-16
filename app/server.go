@@ -18,19 +18,18 @@ func SetUpServer() *gin.Engine {
 
 	db := database.GetDB(cfg)
 
-	auth := middleware.GetAuthMiddleware(cfg)
 	rApi := r.Group("/api")
 	{
-		uh := handlers.UserHandlers{DB: db}
+		uh := handlers.UserHandlers{DB: db, Cfg: cfg}
 		rUser := rApi.Group("/user")
 		{
 			// регистрация
 			rUser.POST("/register", uh.Register)
 			// авторизация
-			rUser.POST("/login", auth.LoginHandler)
+			rUser.POST("/login")
 
 			// роуты под авторизацией
-			rUser.Use(auth.MiddlewareFunc())
+			rUser.Use(middleware.Auth(db, cfg))
 			{
 				rUserOrders := rUser.Group("/orders")
 				{

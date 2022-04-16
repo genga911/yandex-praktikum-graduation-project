@@ -11,7 +11,9 @@ type Config struct {
 	RunAddress          string `env:"RUN_ADDRESS" envDefault:"localhost:8080"`
 	DataBaseURI         string `env:"DATABASE_URI" envDefault:""`
 	ActualSystemAddress string `env:"ACTUAL_SYSTEM_ADDRESS" envDefault:""`
-	JWTKey              string `env:"JWT_KEY" envDefault:"XVKjs6qaK9WiEr5g"`
+	SecretKey           string `env:"SECRET_KEY" envDefault:"XVKjs6qaK9WiEr5g"`
+	CookieTTL           int    `env:"COOKIE_TTL" envDefault:"300"`
+	AuthTTL             int    `env:"AUTH_TTL" envDefault:"86400"`
 }
 
 func Get() *Config {
