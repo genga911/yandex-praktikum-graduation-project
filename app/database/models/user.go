@@ -19,3 +19,11 @@ func (u *User) GetCreateTable() string {
 		"balance int not null default 0"+
 		");", UsersTableName)
 }
+
+func (ur *User) DropTable() string {
+	return fmt.Sprintf("DROP table IF EXISTS %s;", UsersTableName)
+}
+
+func (ur *User) GetTableName() string {
+	return UsersTableName
+}

@@ -43,11 +43,18 @@ func GetDB(cfg *config.Config) *DB {
 func (db *DB) createTables() {
 	var tables []models.Model
 	tables = append(tables, &models.User{})
+	tables = append(tables, &models.Order{})
 
 	for _, table := range tables {
-		_, err := db.Connection.Exec(context.Background(), table.GetCreateTable())
+		// дропаем старое
+		_, err := db.Connection.Exec(context.Background(), table.DropTable())
 		if err != nil {
-			panic(fmt.Sprintf("Cannot create table users: %s", err))
+			panic(fmt.Sprintf("Cannot drop table %s: %s", table.GetTableName(), err))
+		}
+		// создаем новое
+		_, err = db.Connection.Exec(context.Background(), table.GetCreateTable())
+		if err != nil {
+			panic(fmt.Sprintf("Cannot create table %s: %s", table.GetTableName(), err))
 		}
 	}
 }

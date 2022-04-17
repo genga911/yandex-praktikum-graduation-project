@@ -21,6 +21,8 @@ func SetUpServer() *gin.Engine {
 	rApi := r.Group("/api")
 	{
 		uh := handlers.UserHandlers{DB: db, Cfg: cfg}
+		oh := handlers.OrdersHandlers{DB: db, Cfg: cfg}
+
 		rUser := rApi.Group("/user")
 		{
 			// регистрация
@@ -34,7 +36,7 @@ func SetUpServer() *gin.Engine {
 				rUserOrders := rUser.Group("/orders")
 				{
 					// загрузка пользователем номера заказа для расчёта
-					rUserOrders.POST("/")
+					rUserOrders.POST("/", oh.OrdersUpload)
 					// получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях
 					rUserOrders.GET("/")
 				}

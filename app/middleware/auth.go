@@ -32,13 +32,8 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 		}
 
 		// проверим корректность куки
-		// пример взят из официальной документации
 		token, err := jwt.ParseWithClaims(authCookie, &JWTAuth{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Cookie token error: %v", token.Header["alg"])
-			}
-
-			return cfg.SecretKey, nil
+			return []byte(cfg.SecretKey), nil
 		})
 
 		var ID int
@@ -46,10 +41,10 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 			if claims, ok := token.Claims.(*JWTAuth); ok && token.Valid {
 				ID = claims.ID
 			} else {
-				c.AbortWithStatus(http.StatusForbidden)
+				c.AbortWithStatus(http.StatusUnauthorized)
 			}
 		} else {
-			c.AbortWithStatus(http.StatusForbidden)
+			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 
 		// Убедимся что пользователь реально существует
@@ -58,7 +53,7 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 		}
 		user, err := rp.Find(ID)
 		if err != nil {
-			c.AbortWithError(http.StatusForbidden, err)
+			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
 
