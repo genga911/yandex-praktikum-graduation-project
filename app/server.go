@@ -26,7 +26,7 @@ func SetUpServer() *gin.Engine {
 			// регистрация
 			rUser.POST("/register", uh.Register)
 			// авторизация
-			rUser.POST("/login")
+			rUser.POST("/login", uh.Login)
 
 			// роуты под авторизацией
 			rUser.Use(middleware.Auth(db, cfg))

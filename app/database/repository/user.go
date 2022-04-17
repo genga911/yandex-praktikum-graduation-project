@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/helpers"
+	"github.com/jackc/pgx/v4"
 )
 
 type User struct {
@@ -35,9 +37,31 @@ func (ur User) Find(id int) (*models.User, error) {
 		context.Background(),
 		query,
 		id,
-	).Scan(user.Login, user.Balance)
+	).Scan(&user.Login, &user.Balance)
 
 	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (ur User) GetUserByLoginPassword(l string, p string) (*models.User, error) {
+	var user models.User
+	query := fmt.Sprintf("SELECT id, login, balance FROM %s WHERE login = $1 AND password = $2 LIMIT 1", models.UsersTableName)
+
+	err := ur.DB.Connection.QueryRow(
+		context.Background(),
+		query,
+		l,
+		helpers.MakeMD5(p),
+	).Scan(&user.ID, &user.Login, &user.Balance)
+
+	// если есть ошибка и это не отсутствие результата
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = nil
+		}
 		return nil, err
 	}
 
