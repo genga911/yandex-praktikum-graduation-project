@@ -72,7 +72,7 @@ func (ur *User) GetUserByLoginPassword(l string, p string) (*models.User, error)
 	return &user, nil
 }
 
-func (ur *User) IncreaseBalance(sum float32, u *models.User) error {
+func (ur *User) IncreaseBalance(sum float64, u *models.User) error {
 	query := fmt.Sprintf("UPDATE %s SET balance = balance + $1 WHERE id = $2 RETURNING balance", models.UsersTableName)
 	err := ur.DB.Connection.QueryRow(
 		context.Background(),
@@ -84,7 +84,7 @@ func (ur *User) IncreaseBalance(sum float32, u *models.User) error {
 	return err
 }
 
-func (ur *User) IncreaseWithdraw(sum float32, u *models.User) error {
+func (ur *User) IncreaseWithdraw(sum float64, u *models.User) error {
 	query := fmt.Sprintf("UPDATE %s SET withdraw = withdraw + $1 WHERE id = $2 RETURNING withdraw", models.UsersTableName)
 	err := ur.DB.Connection.QueryRow(
 		context.Background(),

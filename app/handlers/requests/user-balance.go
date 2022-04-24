@@ -11,13 +11,13 @@ import (
 )
 
 type Balance struct {
-	Current   float32 `json:"current"`
+	Current   float64 `json:"current"`
 	Withdrawn int     `json:"withdrawn"`
 }
 
 type WithdrawRequest struct {
 	Number string  `json:"order" binding:"required"`
-	Sum    float32 `json:"sum" binding:"required"`
+	Sum    float64 `json:"sum" binding:"required"`
 }
 
 // RegisterWithdraw регистрация списания

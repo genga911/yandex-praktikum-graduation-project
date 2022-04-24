@@ -15,7 +15,7 @@ type Withdraw struct {
 }
 
 // Create создать заказ
-func (w *Withdraw) Create(sum float32, o *models.Order) (*models.Withdraw, error) {
+func (w *Withdraw) Create(sum float64, o *models.Order) (*models.Withdraw, error) {
 	var wi models.Withdraw
 	err := w.DB.Connection.QueryRow(
 		context.Background(),

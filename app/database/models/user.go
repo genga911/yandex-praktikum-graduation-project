@@ -6,8 +6,8 @@ type User struct {
 	ID       int     `json:"id"`
 	Login    string  `json:"login"`
 	Password string  `json:"-"`
-	Balance  float32 `json:"balance,omitempty"`
-	Withdraw float32 `json:"withdraw"`
+	Balance  float64 `json:"balance,omitempty"`
+	Withdraw float64 `json:"withdraw"`
 }
 
 const UsersTableName = "users"

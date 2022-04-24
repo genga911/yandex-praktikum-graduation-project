@@ -10,8 +10,8 @@ import (
 )
 
 type BalanceResponse struct {
-	Balance  float32 `json:"balance"`
-	Withdraw float32 `json:"withdraw"`
+	Balance  float64 `json:"balance"`
+	Withdraw float64 `json:"withdraw"`
 }
 
 // Balance Баланс пользователя
