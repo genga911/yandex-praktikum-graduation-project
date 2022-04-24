@@ -31,5 +31,11 @@ func InitFlags(cfg *Config) {
 	flag.StringVar(&cfg.RunAddress, "a", cfg.RunAddress, "адрес и порт запуска сервиса")
 	flag.StringVar(&cfg.DataBaseURI, "d", cfg.DataBaseURI, "адрес подключения к базе данных")
 	flag.StringVar(&cfg.ActualSystemAddress, "f", cfg.ActualSystemAddress, "адрес системы расчёта начислений: переменная окружения ОС")
+
 	flag.Parse()
+}
+
+// GetAccuralRequestAddress number - идентификатор заказа
+func (c *Config) GetAccuralRequestAddress(number string) string {
+	return fmt.Sprintf("%s/api/orders/%s", c.ActualSystemAddress, number)
 }

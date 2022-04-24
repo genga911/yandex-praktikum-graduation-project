@@ -64,7 +64,8 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 			if err != nil {
 				msg = err.Error()
 			}
-			c.AbortWithError(http.StatusUnauthorized, errors.New(fmt.Sprintf("ошибка авторизации: %s", msg)))
+
+			c.AbortWithError(http.StatusUnauthorized, fmt.Errorf("ошибка авторизации: %s", msg))
 			return
 		}
 

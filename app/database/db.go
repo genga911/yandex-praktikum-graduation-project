@@ -44,6 +44,7 @@ func (db *DB) createTables() {
 	var tables []models.Model
 	tables = append(tables, &models.User{})
 	tables = append(tables, &models.Order{})
+	tables = append(tables, &models.Withdraw{})
 
 	for _, table := range tables {
 		// дропаем старое

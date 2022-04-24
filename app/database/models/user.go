@@ -3,10 +3,11 @@ package models
 import "fmt"
 
 type User struct {
-	ID       int    `json:"id"`
-	Login    string `json:"login"`
-	Password string `json:"-"`
-	Balance  int    `json:"balance,omitempty"`
+	ID       int     `json:"id"`
+	Login    string  `json:"login"`
+	Password string  `json:"-"`
+	Balance  float32 `json:"balance,omitempty"`
+	Withdraw float32 `json:"withdraw"`
 }
 
 const UsersTableName = "users"
@@ -16,7 +17,8 @@ func (ur *User) GetCreateTable() string {
 		"id serial not null,"+
 		"login varchar(255) not null UNIQUE,"+
 		"password varchar(255) not null,"+
-		"balance int not null default 0"+
+		"balance NUMERIC(3,2) not null default 0,"+
+		"withdraw NUMERIC(3,2) not null default 0"+
 		");", UsersTableName)
 }
 

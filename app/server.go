@@ -44,11 +44,11 @@ func SetUpServer() *gin.Engine {
 				rUserBalance := rUser.Group("/balance")
 				{
 					// получение текущего баланса счёта баллов лояльности пользователя
-					rUserBalance.GET("/")
+					rUserBalance.GET("/", uh.Balance)
 					// запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
-					rUserBalance.POST("/withdraw")
+					rUserBalance.POST("/withdraw", uh.RegisterWithdraw)
 					// получение информации о выводе средств с накопительного счёта пользователем
-					rUserBalance.GET("/withdrawals")
+					rUserBalance.GET("/withdrawals", uh.ListWithdraw)
 				}
 			}
 		}

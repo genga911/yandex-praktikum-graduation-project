@@ -5,17 +5,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
 
+	"github.com/genga911/yandex-praktikum-graduation-project/app/config"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/repository"
 	request_errors "github.com/genga911/yandex-praktikum-graduation-project/app/handlers/requests/exceptions"
-	"github.com/genga911/yandex-praktikum-graduation-project/app/helpers"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgerrcode"
+	"github.com/theplant/luhn"
 )
 
-func OrderUpload(db *database.DB, c *gin.Context) *models.Order {
+func OrderUpload(db *database.DB, cfg *config.Config, c *gin.Context) *models.Order {
 	body := c.Request.Body
 	number, err := ioutil.ReadAll(body)
 	if err != nil {
@@ -62,30 +64,31 @@ func OrderUpload(db *database.DB, c *gin.Context) *models.Order {
 		return nil
 	}
 
+	// проверим баллы пользователя для этого номера
+	aOrder, err := rp.GetFromAccrual(cfg, &order)
+	if err != nil {
+		rp.Delete(&order)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return nil
+	}
+
+	// добавляем баланс только если заказ уже обработан
+	if aOrder.Accrual > 0 && aOrder.Status == repository.OrderStatusProcessed {
+		urp := repository.User{
+			DB: db,
+		}
+		err = urp.IncreaseBalance(aOrder.Accrual, user)
+		if err != nil {
+			rp.Delete(&order)
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return nil
+		}
+	}
+
 	return &order
 }
 
-// validateNumber Валидатор для строки с номером заказа
-func validateNumber(number string, c *gin.Context) bool {
-	if len(number) == 0 {
-		c.AbortWithError(http.StatusBadRequest, errors.New("пустой номер заказа"))
-		return false
-	}
-
-	matched, err := regexp.MatchString(`^\d+$`, number)
-	if err != nil || !matched {
-		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер должен состоять только из цифр"))
-		return false
-	}
-
-	if !helpers.LuhnAlgorithm(number) {
-		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер не корректен"))
-		return false
-	}
-
-	return true
-}
-
+// OrdersList список заказов
 func OrdersList(db *database.DB, c *gin.Context) []*models.Order {
 	rp := repository.Order{
 		DB: db,
@@ -104,4 +107,26 @@ func OrdersList(db *database.DB, c *gin.Context) []*models.Order {
 	}
 
 	return orders
+}
+
+// validateNumber Валидатор для строки с номером заказа
+func validateNumber(number string, c *gin.Context) bool {
+	if len(number) == 0 {
+		c.AbortWithError(http.StatusBadRequest, errors.New("пустой номер заказа"))
+		return false
+	}
+
+	matched, err := regexp.MatchString(`^\d+$`, number)
+	if err != nil || !matched {
+		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер должен состоять только из цифр"))
+		return false
+	}
+
+	orderNumber, _ := strconv.Atoi(number)
+	if !luhn.Valid(orderNumber) {
+		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер не корректен"))
+		return false
+	}
+
+	return true
 }

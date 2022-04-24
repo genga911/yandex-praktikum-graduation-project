@@ -15,8 +15,10 @@ type OrdersHandlers struct {
 }
 
 func (oh *OrdersHandlers) OrdersUpload(c *gin.Context) {
-	order := requests.OrderUpload(oh.DB, c)
-	c.JSON(http.StatusAccepted, order)
+	order := requests.OrderUpload(oh.DB, oh.Cfg, c)
+	if order != nil {
+		c.JSON(http.StatusAccepted, order)
+	}
 }
 
 func (oh *OrdersHandlers) OrdersList(c *gin.Context) {
