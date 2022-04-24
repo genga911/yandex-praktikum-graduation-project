@@ -127,6 +127,7 @@ func (or *Order) GetFromAccrual(cfg *config.Config, o *models.Order) (*AccrualOr
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	// парсинг тела ответа
 	body, err := ioutil.ReadAll(resp.Body)
