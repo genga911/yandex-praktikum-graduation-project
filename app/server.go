@@ -38,7 +38,7 @@ func SetUpServer() *gin.Engine {
 					// загрузка пользователем номера заказа для расчёта
 					rUserOrders.POST("/", oh.OrdersUpload)
 					// получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях
-					rUserOrders.GET("/")
+					rUserOrders.GET("/", oh.OrdersList)
 				}
 
 				rUserBalance := rUser.Group("/balance")

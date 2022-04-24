@@ -59,7 +59,7 @@ func (or *Order) Create(u *models.User, o *models.Order) error {
 	return err
 }
 
-// получить заказ по номеру
+// Find получить заказ по номеру
 func (or *Order) Find(Number string) (*models.Order, error) {
 	order := models.Order{Number: Number}
 	query := fmt.Sprintf("SELECT user_id, status, accrual, uploaded_at FROM %s WHERE number = $1 LIMIT 1", models.OrdersTableName)
@@ -78,4 +78,35 @@ func (or *Order) Find(Number string) (*models.Order, error) {
 	}
 
 	return &order, nil
+}
+
+func (or *Order) List(u *models.User) ([]*models.Order, error) {
+	query := fmt.Sprintf("SELECT user_id, status, accrual, uploaded_at FROM %s WHERE user_id = $1", models.OrdersTableName)
+	rows, err := or.DB.Connection.Query(
+		context.Background(),
+		query,
+		u.ID,
+	)
+
+	defer rows.Close()
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = nil
+		}
+		return nil, err
+	}
+
+	var slice []*models.Order
+	for rows.Next() {
+		var order models.Order
+		err = rows.Scan(&order.UserID, &order.Status, &order.Accrual, &order.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		slice = append(slice, &order)
+	}
+
+	return slice, nil
 }

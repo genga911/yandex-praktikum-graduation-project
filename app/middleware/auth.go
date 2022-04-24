@@ -59,8 +59,12 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 			DB: db,
 		}
 		user, err := rp.Find(ID)
-		if err != nil {
-			c.AbortWithError(http.StatusUnauthorized, err)
+		if err != nil || user == nil {
+			msg := "пользователь не найден"
+			if err != nil {
+				msg = err.Error()
+			}
+			c.AbortWithError(http.StatusUnauthorized, errors.New(fmt.Sprintf("ошибка авторизации: %s", msg)))
 			return
 		}
 

@@ -85,3 +85,23 @@ func validateNumber(number string, c *gin.Context) bool {
 
 	return true
 }
+
+func OrdersList(db *database.DB, c *gin.Context) []*models.Order {
+	rp := repository.Order{
+		DB: db,
+	}
+
+	u, exist := c.Get("user")
+	if !exist {
+		c.AbortWithError(http.StatusUnauthorized, errors.New("пользователь не найден"))
+		return nil
+	}
+	user := u.(*models.User)
+	orders, err := rp.List(user)
+
+	if err != nil {
+		return []*models.Order{}
+	}
+
+	return orders
+}
