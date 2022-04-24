@@ -18,12 +18,12 @@ func SetUpServer() *gin.Engine {
 
 	db := database.GetDB(cfg)
 
-	rApi := r.Group("/api")
+	rAPI := r.Group("/api")
 	{
 		uh := handlers.UserHandlers{DB: db, Cfg: cfg}
 		oh := handlers.OrdersHandlers{DB: db, Cfg: cfg}
 
-		rUser := rApi.Group("/user")
+		rUser := rAPI.Group("/user")
 		{
 			// регистрация
 			rUser.POST("/register", uh.Register)

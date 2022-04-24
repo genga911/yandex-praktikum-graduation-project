@@ -11,7 +11,7 @@ type User struct {
 
 const UsersTableName = "users"
 
-func (u *User) GetCreateTable() string {
+func (ur *User) GetCreateTable() string {
 	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ("+
 		"id serial not null,"+
 		"login varchar(255) not null UNIQUE,"+

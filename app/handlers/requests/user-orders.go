@@ -9,7 +9,7 @@ import (
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/repository"
-	request_errors "github.com/genga911/yandex-praktikum-graduation-project/app/handlers/requests/request-errors"
+	request_errors "github.com/genga911/yandex-praktikum-graduation-project/app/handlers/requests/exceptions"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/helpers"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgerrcode"
@@ -32,7 +32,7 @@ func OrderUpload(db *database.DB, c *gin.Context) *models.Order {
 
 	u, exist := c.Get("user")
 	if !exist {
-		c.AbortWithError(http.StatusUnauthorized, errors.New("Пользователь не найден"))
+		c.AbortWithError(http.StatusUnauthorized, errors.New("пользователь не найден"))
 		return nil
 	}
 
@@ -68,18 +68,18 @@ func OrderUpload(db *database.DB, c *gin.Context) *models.Order {
 // validateNumber Валидатор для строки с номером заказа
 func validateNumber(number string, c *gin.Context) bool {
 	if len(number) == 0 {
-		c.AbortWithError(http.StatusBadRequest, errors.New("Пустой номер заказа"))
+		c.AbortWithError(http.StatusBadRequest, errors.New("пустой номер заказа"))
 		return false
 	}
 
 	matched, err := regexp.MatchString(`^\d+$`, number)
 	if err != nil || !matched {
-		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("Номер должен состоять только из цифр"))
+		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер должен состоять только из цифр"))
 		return false
 	}
 
 	if !helpers.LuhnAlgorithm(number) {
-		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("Номер не корректен"))
+		c.AbortWithError(http.StatusUnprocessableEntity, errors.New("номер не корректен"))
 		return false
 	}
 

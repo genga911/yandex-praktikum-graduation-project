@@ -27,7 +27,7 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 		authCookieName := "auth"
 		authCookie, err := c.Cookie(authCookieName)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
-			fmt.Println(fmt.Sprintf("Cookie error: %s", err))
+			fmt.Printf("Cookie error: %s", err)
 			return
 		}
 
@@ -36,15 +36,22 @@ func Auth(db *database.DB, cfg *config.Config) gin.HandlerFunc {
 			return []byte(cfg.SecretKey), nil
 		})
 
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
 		var ID int
 		if token != nil {
 			if claims, ok := token.Claims.(*JWTAuth); ok && token.Valid {
 				ID = claims.ID
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
+				return
 			}
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
 		// Убедимся что пользователь реально существует

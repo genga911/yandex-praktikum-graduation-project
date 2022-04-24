@@ -7,7 +7,7 @@ import (
 
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
-	request_errors "github.com/genga911/yandex-praktikum-graduation-project/app/handlers/requests/request-errors"
+	request_errors "github.com/genga911/yandex-praktikum-graduation-project/app/handlers/requests/exceptions"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v4"
 )

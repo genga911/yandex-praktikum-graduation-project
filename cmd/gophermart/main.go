@@ -11,7 +11,7 @@ func main() {
 	// загруаем данные из env
 	if err := godotenv.Load(); err != nil {
 		// если нет файла, просто пропустим. не страшно
-		fmt.Println(fmt.Sprintf("Load .env error: %s", err))
+		fmt.Printf("Load .env error: %s", err)
 	}
 
 	app.SetUpServer()

@@ -43,7 +43,7 @@ func DoLogin(db *database.DB, c *gin.Context) *models.User {
 	}
 
 	if user == nil {
-		c.AbortWithError(http.StatusUnauthorized, errors.New("Неверная пара логин/пароль"))
+		c.AbortWithError(http.StatusUnauthorized, errors.New("неверная пара логин/пароль"))
 	}
 
 	return user

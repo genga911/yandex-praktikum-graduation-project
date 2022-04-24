@@ -47,7 +47,7 @@ func DoRegister(db *database.DB, c *gin.Context) *models.User {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				c.AbortWithError(http.StatusConflict, errors.New("Логин уже занят"))
+				c.AbortWithError(http.StatusConflict, errors.New("логин уже занят"))
 				return nil
 			}
 		} else {
