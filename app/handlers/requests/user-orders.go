@@ -49,7 +49,7 @@ func OrderUpload(db *database.DB, c *gin.Context) *models.Order {
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
 				if pgErr.Message == request_errors.OrderAlreadyExists {
-					c.AbortWithError(http.StatusAccepted, errors.New(request_errors.OrderAlreadyExists))
+					c.AbortWithError(http.StatusOK, errors.New(request_errors.OrderAlreadyExists))
 				} else {
 					c.AbortWithError(http.StatusConflict, errors.New(request_errors.OrderCreatedByAnotherUser))
 				}
