@@ -17,8 +17,8 @@ type Balance struct {
 }
 
 type WithdrawRequest struct {
-	Number string  `json:"order" binding:"required"`
-	Sum    float64 `json:"sum" binding:"required"`
+	Number string  `json:"order"`
+	Sum    float64 `json:"sum"`
 }
 
 // RegisterWithdraw регистрация списания
@@ -44,7 +44,7 @@ func RegisterWithdraw(cfg *config.Config, db *database.DB, c *gin.Context) *mode
 		DB: db,
 	}
 
-	balance, err := ro.GetBalance(cfg, user)
+	balance, err := ro.GetBalance(user)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return nil
@@ -103,7 +103,7 @@ func GetBalance(cfg *config.Config, db *database.DB, c *gin.Context) *Balance {
 		DB: db,
 	}
 	var err error
-	balance.Current, err = ro.GetBalance(cfg, user)
+	balance.Current, err = ro.GetBalance(user)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return nil

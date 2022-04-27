@@ -38,15 +38,15 @@ func SetUpServer() *gin.Engine {
 					// загрузка пользователем номера заказа для расчёта
 					rUserOrders.POST("/", oh.OrdersUpload)
 					// получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях
-					rUserOrders.GET("/", oh.OrdersList)
+					rUserOrders.GET("/", oh.OrdersList).Use(middleware.OrdersSync(db, cfg))
 				}
 
 				rUserBalance := rUser.Group("/balance")
 				{
 					// получение текущего баланса счёта баллов лояльности пользователя
-					rUserBalance.GET("/", uh.Balance)
+					rUserBalance.GET("/", uh.Balance).Use(middleware.OrdersSync(db, cfg))
 					// запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
-					rUserBalance.POST("/withdraw", uh.RegisterWithdraw)
+					rUserBalance.POST("/withdraw", uh.RegisterWithdraw).Use(middleware.OrdersSync(db, cfg))
 					// получение информации о выводе средств с накопительного счёта пользователем
 					rUserBalance.GET("/withdrawals", uh.ListWithdraw)
 				}

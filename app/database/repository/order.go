@@ -122,6 +122,18 @@ func (or *Order) List(u *models.User) ([]*models.Order, error) {
 	return slice, nil
 }
 
+// Update
+func (or *Order) Update(o *models.Order) error {
+	_, err := or.DB.Connection.Exec(
+		context.Background(),
+		fmt.Sprintf("UPDATE %s SET status=$1, accrual=$2", models.OrdersTableName),
+		o.Status,
+		o.Accrual,
+	)
+
+	return err
+}
+
 func (or *Order) GetFromAccrual(cfg *config.Config, o *models.Order) (*AccrualOrder, error) {
 	// запрос к апи серверу за информацией по начислению баллов
 	resp, err := http.Get(cfg.GetAccuralRequestAddress(o.Number))
@@ -142,6 +154,14 @@ func (or *Order) GetFromAccrual(cfg *config.Config, o *models.Order) (*AccrualOr
 		return nil, err
 	}
 
+	// сохраним данные по заказу
+	o.Status = aOrder.Status
+	o.Accrual = aOrder.Accrual
+	err = or.Update(o)
+	if err != nil {
+		return nil, err
+	}
+
 	return &aOrder, nil
 }
 
@@ -157,14 +177,12 @@ func (or *Order) Delete(o *models.Order) error {
 	return err
 }
 
-//GetBalance получение баланса
-func (or *Order) GetBalance(cfg *config.Config, u *models.User) (float64, error) {
+func (or *Order) Sync(cfg *config.Config, u *models.User) error {
 	orders, err := or.List(u)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	var wg sync.WaitGroup
-	accruals := make([]*AccrualOrder, len(orders))
 
 	for index, order := range orders {
 		wg.Add(1)
@@ -174,18 +192,31 @@ func (or *Order) GetBalance(cfg *config.Config, u *models.User) (float64, error)
 			if err != nil {
 				panic(err)
 			}
+			order.Status = aOrder.Status
+			order.Accrual = aOrder.Accrual
 
-			accruals[index] = aOrder
+			err = or.Update(order)
+			if err != nil {
+				panic(err)
+			}
 		}(cfg, order, index)
 	}
 
 	wg.Wait()
+
+	return err
+}
+
+//GetBalance получение баланса
+func (or *Order) GetBalance(u *models.User) (float64, error) {
 	var balance float64
-	for _, a := range accruals {
-		if a.Status == OrderStatusProcessed {
-			balance += a.Accrual
-		}
-	}
+
+	err := or.DB.Connection.QueryRow(
+		context.Background(),
+		fmt.Sprintf("SELECT SUM(accrual) FROM %s WHERE user_id=$1 AND status=$2", models.OrdersTableName),
+		u.ID,
+		OrderStatusProcessed,
+	).Scan(&balance)
 
 	return balance, err
 }
