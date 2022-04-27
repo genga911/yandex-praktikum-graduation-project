@@ -79,7 +79,7 @@ func OrdersList(db *database.DB, c *gin.Context) []*models.Order {
 		return nil
 	}
 	user := u.(*models.User)
-	orders, err := rp.List(user)
+	orders, err := rp.List(user, true)
 
 	if err != nil {
 		return []*models.Order{}

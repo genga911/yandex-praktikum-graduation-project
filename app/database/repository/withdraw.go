@@ -15,13 +15,13 @@ type Withdraw struct {
 }
 
 // Create создать заказ
-func (w *Withdraw) Create(sum float64, o *models.Order) (*models.Withdraw, error) {
+func (w *Withdraw) Create(sum float32, o *models.Order) (*models.Withdraw, error) {
 	var wi models.Withdraw
 	err := w.DB.Connection.QueryRow(
 		context.Background(),
-		fmt.Sprintf("INSERT INTO %s(number, sum, user_id) VALUES($1, $2, $3) RETURNING processed_at", models.OrdersTableName),
+		fmt.Sprintf("INSERT INTO %s(number, sum, user_id) VALUES($1, $2, $3) RETURNING processed_at", models.WithdrawnTableName),
 		o.Number,
-		sum,
+		int(sum*100),
 		o.UserID,
 	).Scan(&wi.ProcessedAt)
 
@@ -37,7 +37,7 @@ func (w *Withdraw) Create(sum float64, o *models.Order) (*models.Withdraw, error
 
 // List лист пользователя со списаниями
 func (w *Withdraw) List(u *models.User) ([]*models.Withdraw, error) {
-	query := fmt.Sprintf("SELECT number, sum, processed_at, user_id FROM %s WHERE user_id = $1 ORDER BY processed_at DESC", models.OrdersTableName)
+	query := fmt.Sprintf("SELECT number, sum, processed_at, user_id FROM %s WHERE user_id = $1 ORDER BY processed_at DESC", models.WithdrawnTableName)
 	rows, err := w.DB.Connection.Query(
 		context.Background(),
 		query,
@@ -65,4 +65,16 @@ func (w *Withdraw) List(u *models.User) ([]*models.Withdraw, error) {
 	}
 
 	return slice, nil
+}
+
+func (w *Withdraw) GetWithdrawSum(u *models.User) (float32, error) {
+	var withdraw int
+
+	err := w.DB.Connection.QueryRow(
+		context.Background(),
+		fmt.Sprintf("SELECT COALESCE(SUM(sum), 0) FROM %s WHERE user_id=$1", models.WithdrawnTableName),
+		u.ID,
+	).Scan(&withdraw)
+
+	return float32(withdraw) / 100, err
 }

@@ -20,7 +20,7 @@ import (
 type AccrualOrder struct {
 	Number  string  `json:"order"`
 	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual"`
+	Accrual float32 `json:"accrual"`
 }
 
 type Order struct {
@@ -74,12 +74,14 @@ func (or *Order) Create(u *models.User, o *models.Order) error {
 func (or *Order) Find(Number string) (*models.Order, error) {
 	order := models.Order{Number: Number}
 	query := fmt.Sprintf("SELECT user_id, status, accrual, uploaded_at FROM %s WHERE number = $1 LIMIT 1", models.OrdersTableName)
-
+	var accrual int
 	err := or.DB.Connection.QueryRow(
 		context.Background(),
 		query,
 		order.Number,
-	).Scan(&order.UserID, &order.Status, &order.Accrual, &order.UploadedAt)
+	).Scan(&order.UserID, &order.Status, &accrual, &order.UploadedAt)
+
+	order.Accrual = float32(accrual) / 100
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -91,12 +93,19 @@ func (or *Order) Find(Number string) (*models.Order, error) {
 	return &order, nil
 }
 
-func (or *Order) List(u *models.User) ([]*models.Order, error) {
+func (or *Order) List(u *models.User, all bool) ([]*models.Order, error) {
 	query := fmt.Sprintf("SELECT user_id, number, status, accrual, uploaded_at FROM %s WHERE user_id = $1", models.OrdersTableName)
+	var args []interface{}
+	args = append(args, u.ID)
+	if !all {
+		query += " AND status != $2"
+		args = append(args, OrderStatusProcessed)
+	}
+
 	rows, err := or.DB.Connection.Query(
 		context.Background(),
 		query,
-		u.ID,
+		args...,
 	)
 
 	if err != nil {
@@ -111,10 +120,12 @@ func (or *Order) List(u *models.User) ([]*models.Order, error) {
 	var slice []*models.Order
 	for rows.Next() {
 		var order models.Order
-		err = rows.Scan(&order.UserID, &order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		var accrual int
+		err = rows.Scan(&order.UserID, &order.Number, &order.Status, &accrual, &order.UploadedAt)
 		if err != nil {
 			return nil, err
 		}
+		order.Accrual = float32(accrual) / 100
 
 		slice = append(slice, &order)
 	}
@@ -128,7 +139,7 @@ func (or *Order) Update(o *models.Order) error {
 		context.Background(),
 		fmt.Sprintf("UPDATE %s SET status=$1, accrual=$2", models.OrdersTableName),
 		o.Status,
-		o.Accrual,
+		int(o.Accrual*100),
 	)
 
 	return err
@@ -139,6 +150,9 @@ func (or *Order) GetFromAccrual(cfg *config.Config, o *models.Order) (*AccrualOr
 	resp, err := http.Get(cfg.GetAccuralRequestAddress(o.Number))
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("не корректный код ответа от accural: %v", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
@@ -178,7 +192,7 @@ func (or *Order) Delete(o *models.Order) error {
 }
 
 func (or *Order) Sync(cfg *config.Config, u *models.User) error {
-	orders, err := or.List(u)
+	orders, err := or.List(u, false)
 	if err != nil {
 		return err
 	}
@@ -190,7 +204,7 @@ func (or *Order) Sync(cfg *config.Config, u *models.User) error {
 			defer wg.Done()
 			aOrder, err := or.GetFromAccrual(cfg, order)
 			if err != nil {
-				panic(err)
+				return
 			}
 			order.Status = aOrder.Status
 			order.Accrual = aOrder.Accrual
@@ -208,15 +222,14 @@ func (or *Order) Sync(cfg *config.Config, u *models.User) error {
 }
 
 //GetBalance получение баланса
-func (or *Order) GetBalance(u *models.User) (float64, error) {
-	var balance float64
-
+func (or *Order) GetBalanceSum(u *models.User) (float32, error) {
+	var balance int
 	err := or.DB.Connection.QueryRow(
 		context.Background(),
-		fmt.Sprintf("SELECT SUM(accrual) FROM %s WHERE user_id=$1 AND status=$2", models.OrdersTableName),
+		fmt.Sprintf("SELECT COALESCE(SUM(accrual), 0) FROM %s WHERE user_id=$1 AND status=$2", models.OrdersTableName),
 		u.ID,
 		OrderStatusProcessed,
 	).Scan(&balance)
 
-	return balance, err
+	return float32(balance) / 100, err
 }

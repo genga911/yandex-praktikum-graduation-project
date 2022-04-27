@@ -31,22 +31,22 @@ func SetUpServer() *gin.Engine {
 			rUser.POST("/login", uh.Login)
 
 			// роуты под авторизацией
-			rUser.Use(middleware.Auth(db, cfg))
+			rUser.Use(middleware.Auth(db, cfg), middleware.OrdersSync(db, cfg))
 			{
 				rUserOrders := rUser.Group("/orders")
 				{
 					// загрузка пользователем номера заказа для расчёта
 					rUserOrders.POST("/", oh.OrdersUpload)
 					// получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях
-					rUserOrders.GET("/", oh.OrdersList).Use(middleware.OrdersSync(db, cfg))
+					rUserOrders.GET("/", oh.OrdersList)
 				}
 
 				rUserBalance := rUser.Group("/balance")
 				{
 					// получение текущего баланса счёта баллов лояльности пользователя
-					rUserBalance.GET("/", uh.Balance).Use(middleware.OrdersSync(db, cfg))
+					rUserBalance.GET("/", uh.Balance)
 					// запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
-					rUserBalance.POST("/withdraw", uh.RegisterWithdraw).Use(middleware.OrdersSync(db, cfg))
+					rUserBalance.POST("/withdraw", uh.RegisterWithdraw)
 					// получение информации о выводе средств с накопительного счёта пользователем
 					rUserBalance.GET("/withdrawals", uh.ListWithdraw)
 				}

@@ -9,12 +9,12 @@ import (
 
 // Balance Баланс пользователя
 func (uh *UserHandlers) Balance(c *gin.Context) {
-	balance := requests.GetBalance(uh.Cfg, uh.DB, c)
+	balance := requests.GetBalance(uh.DB, c)
 	c.JSON(http.StatusOK, balance)
 }
 
 func (uh *UserHandlers) RegisterWithdraw(c *gin.Context) {
-	withdraw := requests.RegisterWithdraw(uh.Cfg, uh.DB, c)
+	withdraw := requests.RegisterWithdraw(uh.DB, c)
 
 	if withdraw != nil {
 		c.JSON(http.StatusOK, withdraw)
