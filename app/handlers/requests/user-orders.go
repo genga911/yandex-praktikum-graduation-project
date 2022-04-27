@@ -64,27 +64,6 @@ func OrderUpload(db *database.DB, cfg *config.Config, c *gin.Context) *models.Or
 		return nil
 	}
 
-	// проверим баллы пользователя для этого номера
-	aOrder, err := rp.GetFromAccrual(cfg, &order)
-	if err != nil {
-		rp.Delete(&order)
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return nil
-	}
-
-	// добавляем баланс только если заказ уже обработан
-	if aOrder.Accrual > 0 && aOrder.Status == repository.OrderStatusProcessed {
-		urp := repository.User{
-			DB: db,
-		}
-		err = urp.IncreaseBalance(aOrder.Accrual, user)
-		if err != nil {
-			rp.Delete(&order)
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return nil
-		}
-	}
-
 	return &order
 }
 

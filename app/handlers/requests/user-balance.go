@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/genga911/yandex-praktikum-graduation-project/app/config"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/models"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database/repository"
@@ -12,7 +13,7 @@ import (
 
 type Balance struct {
 	Current   float64 `json:"current"`
-	Withdrawn int     `json:"withdrawn"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 type WithdrawRequest struct {
@@ -21,7 +22,7 @@ type WithdrawRequest struct {
 }
 
 // RegisterWithdraw регистрация списания
-func RegisterWithdraw(db *database.DB, c *gin.Context) *models.Withdraw {
+func RegisterWithdraw(cfg *config.Config, db *database.DB, c *gin.Context) *models.Withdraw {
 	u, exist := c.Get("user")
 	if !exist {
 		c.AbortWithError(http.StatusUnauthorized, errors.New("пользователь не найден"))
@@ -39,7 +40,17 @@ func RegisterWithdraw(db *database.DB, c *gin.Context) *models.Withdraw {
 		return nil
 	}
 
-	if user.Balance < request.Sum {
+	ro := repository.Order{
+		DB: db,
+	}
+
+	balance, err := ro.GetBalance(cfg, user)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return nil
+	}
+
+	if balance < request.Sum {
 		c.AbortWithError(http.StatusPaymentRequired, errors.New("на счету не достаточно средств"))
 		return nil
 	}
@@ -67,15 +78,51 @@ func ListWithdraw(db *database.DB, c *gin.Context) []*models.Withdraw {
 	}
 	user := u.(*models.User)
 
-	r := repository.Withdraw{
+	rw := repository.Withdraw{
 		DB: db,
 	}
 
-	list, err := r.List(user)
+	list, err := rw.List(user)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return nil
 	}
 
 	return list
+}
+
+func GetBalance(cfg *config.Config, db *database.DB, c *gin.Context) *Balance {
+	u, exist := c.Get("user")
+	if !exist {
+		c.AbortWithError(http.StatusUnauthorized, errors.New("пользователь не найден"))
+		return nil
+	}
+	user := u.(*models.User)
+	var balance Balance
+	ro := repository.Order{
+		DB: db,
+	}
+	var err error
+	balance.Current, err = ro.GetBalance(cfg, user)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return nil
+	}
+
+	rw := repository.Withdraw{
+		DB: db,
+	}
+
+	list, err := rw.List(user)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return nil
+	}
+
+	balance.Withdrawn = 0
+	for _, w := range list {
+		balance.Withdrawn += w.Sum
+	}
+
+	return &balance
 }

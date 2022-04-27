@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	"github.com/genga911/yandex-praktikum-graduation-project/app/config"
 	"github.com/genga911/yandex-praktikum-graduation-project/app/database"
@@ -154,4 +155,37 @@ func (or *Order) Delete(o *models.Order) error {
 	).Scan()
 
 	return err
+}
+
+//GetBalance получение баланса
+func (or *Order) GetBalance(cfg *config.Config, u *models.User) (float64, error) {
+	orders, err := or.List(u)
+	if err != nil {
+		return 0, err
+	}
+	var wg sync.WaitGroup
+	accruals := make([]*AccrualOrder, len(orders))
+
+	for index, order := range orders {
+		wg.Add(1)
+		go func(cfg *config.Config, order *models.Order, index int) {
+			defer wg.Done()
+			aOrder, err := or.GetFromAccrual(cfg, order)
+			if err != nil {
+				panic(err)
+			}
+
+			accruals[index] = aOrder
+		}(cfg, order, index)
+	}
+
+	wg.Wait()
+	var balance float64
+	for _, a := range accruals {
+		if a.Status == OrderStatusProcessed {
+			balance += a.Accrual
+		}
+	}
+
+	return balance, err
 }

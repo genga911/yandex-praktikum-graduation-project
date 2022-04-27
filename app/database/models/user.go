@@ -16,9 +16,7 @@ func (ur *User) GetCreateTable() string {
 	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ("+
 		"id serial not null,"+
 		"login varchar(255) not null UNIQUE,"+
-		"password varchar(255) not null,"+
-		"balance NUMERIC(3,2) not null default 0,"+
-		"withdraw NUMERIC(3,2) not null default 0"+
+		"password varchar(255) not null"+
 		");", UsersTableName)
 }
 
