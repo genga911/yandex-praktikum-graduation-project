@@ -38,7 +38,6 @@ func DoRegister(db *database.DB, c *gin.Context) *models.User {
 	newUser := models.User{
 		Login:    request.Login,
 		Password: request.Password,
-		Balance:  0,
 	}
 	err = rp.Create(&newUser)
 
