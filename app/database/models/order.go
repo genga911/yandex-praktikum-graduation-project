@@ -17,11 +17,10 @@ const OrdersTableName = "orders"
 
 func (o *Order) GetCreateTable() string {
 	return fmt.Sprintf(
-		"CREATE TYPE order_status AS ENUM ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');"+
-			"CREATE TABLE IF NOT EXISTS %s ("+
+		"CREATE TABLE IF NOT EXISTS %s ("+
 			"number varchar(255) not null UNIQUE,"+
 			"user_id int not null,"+
-			"status order_status not null default 'NEW',"+
+			"status varchar(255) not null default 'NEW',"+
 			"accrual int not null default 0,"+
 			"uploaded_at timestamp not null default CURRENT_TIMESTAMP"+
 			");", OrdersTableName)

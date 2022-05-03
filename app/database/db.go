@@ -14,48 +14,53 @@ type DB struct {
 }
 
 // соединение с БД
-func (db *DB) connect(connStr string) {
+func (db *DB) connect(connStr string) error {
 	connection, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
-		panic(fmt.Sprintf("DB connection error: %s", err))
+		return fmt.Errorf("DB connection error: %s", err)
 	}
 	db.Connection = connection
 
 	err = db.Connection.Ping(context.Background())
 	if err != nil {
-		panic(fmt.Sprintf("DB ping error: %s", err))
+		return fmt.Errorf("DB ping error: %s", err)
 	}
+
+	return nil
 }
 
 // GetDB получить инстанс DB
-func GetDB(cfg *config.Config) *DB {
+func GetDB(cfg *config.Config) (*DB, error) {
 	db := DB{}
 	// подключимся к БД
-	db.connect(cfg.DataBaseURI)
+	err := db.connect(cfg.DataBaseURI)
+	if err != nil {
+		return nil, err
+	}
 
 	// создать таблицы
-	db.createTables()
+	err = db.createTables()
+	if err != nil {
+		return nil, err
+	}
 
-	return &db
+	return &db, nil
 }
 
 // создать таблицу пользователей
-func (db *DB) createTables() {
+func (db *DB) createTables() error {
 	var tables []models.Model
 	tables = append(tables, &models.User{})
 	tables = append(tables, &models.Order{})
 	tables = append(tables, &models.Withdraw{})
 
 	for _, table := range tables {
-		// дропаем старое
-		_, err := db.Connection.Exec(context.Background(), table.DropTable())
-		if err != nil {
-			panic(fmt.Sprintf("Cannot drop table %s: %s", table.GetTableName(), err))
-		}
 		// создаем новое
-		_, err = db.Connection.Exec(context.Background(), table.GetCreateTable())
+		_, err := db.Connection.Exec(context.Background(), table.GetCreateTable())
 		if err != nil {
-			panic(fmt.Sprintf("Cannot create table %s: %s", table.GetTableName(), err))
+			return fmt.Errorf("cannot create table %s: %s", table.GetTableName(), err)
 		}
 	}
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"sync"
 
@@ -31,7 +32,7 @@ const OrderStatusNew = "NEW"
 const OrderStatusProcessing = "PROCESSING"
 const OrderStatusInvalid = "INVALID"
 const OrderStatusProcessed = "PROCESSED"
-
+const SyncLimit = 10 // число запросов при синхронизации за 1 итерацию
 // Create создать заказ
 func (or *Order) Create(u *models.User, o *models.Order) error {
 	// проверим, не создавали ли пользователи ранее этот заказ
@@ -196,28 +197,32 @@ func (or *Order) Sync(cfg *config.Config, u *models.User) error {
 	if err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
 
-	for index, order := range orders {
-		wg.Add(1)
-		go func(cfg *config.Config, order *models.Order, index int) {
-			defer wg.Done()
-			aOrder, err := or.GetFromAccrual(cfg, order)
-			if err != nil {
-				return
-			}
-			order.Status = aOrder.Status
-			order.Accrual = aOrder.Accrual
+	steps := int(math.Ceil(float64(len(orders) / SyncLimit)))
+	for i := 0; i < steps; i++ {
+		// отрезаем кусочек массива, размером SyncLimit и ждем ответа группы
+		// затем делаем новый групповой запрос
+		var wg sync.WaitGroup
+		for index, order := range orders[i:SyncLimit] {
+			wg.Add(1)
+			go func(cfg *config.Config, order *models.Order, index int) {
+				defer wg.Done()
+				aOrder, err := or.GetFromAccrual(cfg, order)
+				if err != nil {
+					return
+				}
+				order.Status = aOrder.Status
+				order.Accrual = aOrder.Accrual
 
-			err = or.Update(order)
-			if err != nil {
-				panic(err)
-			}
-		}(cfg, order, index)
+				err = or.Update(order)
+				if err != nil {
+					panic(err)
+				}
+			}(cfg, order, index)
+		}
+
+		wg.Wait()
 	}
-
-	wg.Wait()
-
 	return err
 }
 

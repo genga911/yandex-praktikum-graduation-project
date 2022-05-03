@@ -16,7 +16,10 @@ func SetUpServer() *gin.Engine {
 	cfg := config.Get()
 	config.InitFlags(cfg)
 
-	db := database.GetDB(cfg)
+	db, err := database.GetDB(cfg)
+	if err != nil {
+		panic(err)
+	}
 
 	rAPI := r.Group("/api")
 	{
@@ -54,7 +57,7 @@ func SetUpServer() *gin.Engine {
 		}
 	}
 
-	err := r.Run(cfg.RunAddress)
+	err = r.Run(cfg.RunAddress)
 	if err != nil {
 		panic(fmt.Sprintf("Cannot run server: %s", err))
 	}
