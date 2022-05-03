@@ -197,13 +197,20 @@ func (or *Order) Sync(cfg *config.Config, u *models.User) error {
 	if err != nil {
 		return err
 	}
-
-	steps := int(math.Ceil(float64(len(orders) / SyncLimit)))
+	ordersCnt := len(orders)
+	steps := int(math.Ceil(float64(ordersCnt) / SyncLimit))
 	for i := 0; i < steps; i++ {
 		// отрезаем кусочек массива, размером SyncLimit и ждем ответа группы
 		// затем делаем новый групповой запрос
 		var wg sync.WaitGroup
-		for index, order := range orders[i:SyncLimit] {
+
+		// аккуратно получим слайс для пула запросов
+		end := ordersCnt - i*SyncLimit
+		if end > SyncLimit {
+			end = SyncLimit
+		}
+
+		for index, order := range orders[i:end] {
 			wg.Add(1)
 			go func(cfg *config.Config, order *models.Order, index int) {
 				defer wg.Done()
